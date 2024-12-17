@@ -1,3 +1,4 @@
+"""Main module"""
 from fastapi import FastAPI, HTTPException
 from services import get_weather
 from models import WeatherRequest, Base
@@ -25,7 +26,13 @@ def weather(city: str):
         weather_data = get_weather(city)
 
         db = SessionLocal()
-        weather_request = WeatherRequest(city=city, temperature=weather_data["temperature"])
+        weather_request = WeatherRequest(
+            city=city,
+            temperature=weather_data["temperature"],
+            feelslike=weather_data["feelslike"],
+            wind_speed=weather_data["wind_speed"],
+            wind_dir=weather_data["wind_dir"]
+            )
         db.add(weather_request)
         db.commit()
         db.close()
@@ -49,6 +56,9 @@ def weather_history(city: str):
             "id" : record.id,
             "city": record.city,
             "temperature": record.temperature,
+            "feelslike": record.feelslike,
+            "wind_speed": record.wind_speed,
+            "wind_dir": record.wind_dir,
             "created_at": record.created_at
         }
         for record in history
