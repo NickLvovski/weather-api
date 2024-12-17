@@ -6,6 +6,9 @@ from datetime import datetime
 Base = declarative_base()
 
 class WeatherRequest(Base):
+    """
+    Класс-обертка модели для запросов на прогноз погоды.
+    """
     __tablename__ = "weather requests"
 
     id = Column(Integer, primary_key=True, index=True)

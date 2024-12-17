@@ -1,14 +1,46 @@
 """Main module"""
+import time
 from fastapi import FastAPI, HTTPException
+from sqlalchemy.orm import Session
+from prometheus_client import Counter, Histogram, generate_latest
+from prometheus_client.exposition import CONTENT_TYPE_LATEST
+from starlette.responses import Response
 from services import get_weather
 from models import WeatherRequest, Base
 from database import SessionLocal, engine
-from sqlalchemy.orm import Session
 
 app = FastAPI(title="Weather API", version="1.0.0")
 
 #Creating database
 Base.metadata.create_all(bind=engine)
+
+#Метрики для мониторинга
+REQUEST_COUNT = Counter("request_count", "Количество запросов", ["method", "endpoint"])
+REQUEST_LATENCY = Histogram("request_latency_seconds", "Задержка запросов", ["endpoint"])
+
+@app.middleware("http")
+async def prometheus_middleware(request, call_next):
+    """
+    Сбор метрик для мониторинга.
+    """
+    method = request.method
+    endpoint = request.url.path
+    start_time = time.time()
+
+    responce = await call_next(request)
+
+    process_time = time.time() - start_time
+    REQUEST_LATENCY.labels(endpoint=endpoint).observe(process_time)
+    REQUEST_COUNT.labels(method=method, endpoint=endpoint).inc()
+
+    return responce
+
+@app.get("/metrics")
+def metrics():
+    """
+    Показ метрик по эндпоинту.
+    """
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 def get_db():
     db = SessionLocal()
