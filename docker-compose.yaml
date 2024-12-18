@@ -3,8 +3,11 @@ version: '3.7'
 services:
   api:
     build: .
+    container_name: weather_api
     ports:
       - "8000:8000"
+    networks:
+      - monitoring
     volumes:
       - .:/app
       - ./data:/data
@@ -14,16 +17,40 @@ services:
   prometheus:
     image: prom/prometheus
     volumes:
-      - ./prometheus.yaml:/etc/prometheus/prometheus.yaml
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
        - "9090:9090"
+    networks:
+      - monitoring
+
+  node_exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.ignored-mount-points
+      - '^/(sys|proc|dev|host|etc)($|/)'
+    networks:
+      - monitoring
 
   grafana:
     image: grafana/grafana
     ports:
       - "3000:3000"
+    networks:
+      - monitoring
     volumes:
       - grafana_data:/var/lib/grafana
 
 volumes:
   grafana_data: {}
+
+networks:
+  monitoring:
