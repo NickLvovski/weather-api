@@ -1,12 +1,16 @@
 """Main module"""
-from fastapi import FastAPI, HTTPException
+from typing import Annotated
+from fastapi import FastAPI, HTTPException, Response, Depends
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy.orm import Session
 from prometheus_fastapi_instrumentator import Instrumentator
 from services import get_weather
-from models import WeatherRequest, Base
+from models import WeatherRequest, Administrator, Base
 from database import SessionLocal, engine
+from init import init_administrator
 
-app = FastAPI(title="Weather API", version="1.0.0")
+app = FastAPI(title="Weather API", version="1.0.1")
+security = HTTPBasic()
 
 #Настройка инструментатора для сбора метрик FastAPI
 Instrumentator = Instrumentator()
@@ -22,6 +26,14 @@ def get_db():
         yield db
     finally:
         db.close()
+
+#Administrator initialization
+def admin_initialization():
+    db = SessionLocal()
+    db.add(init_administrator())
+    db.commit()
+    db.close()
+admin_initialization()
 
 @app.get("/weather", summary="Get weather forecast")
 def weather(city: str):
@@ -69,3 +81,28 @@ def weather_history(city: str):
         }
         for record in history
     ]
+
+@app.delete("/weather/history", summary="Remove weather history by id")
+def remove_weather_history(
+    id:int, 
+    credentials:Annotated[HTTPBasicCredentials, Depends(security)]
+    ):
+    """
+    Удаляет запрос из базы данных по id.
+    """
+    db: Session=next(get_db())
+    # Проверяем, является ли пользователь администратором
+    admin = db.query(Administrator).where(
+        Administrator.username == credentials.username, 
+        Administrator.password == credentials.password
+        ).first()
+    if not admin:
+        raise HTTPException(status_code=401, detail="Administrator not found")
+    
+    history = db.query(WeatherRequest).filter(WeatherRequest.id == id)
+    if not history:
+        raise HTTPException(status_code = 404, detail=f"No data for id: {id}")
+    db.query(WeatherRequest).filter(WeatherRequest.id == id).delete()
+    db.commit()
+
+    return Response(status_code=200)

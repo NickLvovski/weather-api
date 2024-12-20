@@ -18,3 +18,14 @@ class WeatherRequest(Base):
     wind_speed = Column(Float)
     wind_dir = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class Administrator(Base):
+    """
+    Класс профиля администратора.
+    """
+    __tablename__ = "administrators"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, index=True)
+    password = Column(String)
+

@@ -1,9 +1,11 @@
 """GET methods for API"""
+from statistics import mean
 import requests
 from fastapi import HTTPException
 from credentials import WEATHERSTACK_API_KEY
 
 WEATHERSTACK_BASE_URL = "http://api.weatherstack.com/"
+
 def get_weather(city:str) -> dict:
     """Получение текущего прогноза погоды"""
     url = f"{WEATHERSTACK_BASE_URL}/current"
@@ -20,3 +22,4 @@ def get_weather(city:str) -> dict:
         "wind_speed": weather_data["current"]["wind_speed"],
         "wind_dir": weather_data["current"]["wind_dir"]
     }
+
