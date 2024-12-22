@@ -4,18 +4,18 @@ stages:
 
 variables:
   # Указываем, где хранится файл docker-compose и настраиваем доступ по SSH.
-  BUILD_SERVER: "ec2-user@91.184.234.183"
-  DEPLOY_SERVER: "ec2-user@91.184.234.182"
-  COMPOSE_FILE: "/home/ec2-user/weather-api/docker-compose.yaml"
+  BUILD_SERVER: "<USER>@<BUILD_SERVER>"
+  DEPLOY_SERVER: "<USER>@<DEPLOY_SERVER>"
+  COMPOSE_FILE: "/path/to/docker-compose.yaml"
   DOCKER_TLS_CERTDIR: "/certs"
-  PROJECT_DIR: "/home/ec2-user/weather-api/"
+  PROJECT_DIR: "/path/to/weather-api/"
 
 before_script:
   - mkdir -p ~/.ssh
   - echo "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_rsa
   - chmod 600 ~/.ssh/id_rsa
-  - ssh-keyscan -H 91.184.234.183 >> ~/.ssh/known_hosts
-  - ssh-keyscan -H 91.184.234.182 >> ~/.ssh/known_hosts
+  - ssh-keyscan -H BUILD_SERVER IP >> ~/.ssh/known_hosts
+  - ssh-keyscan -H DEPLOY_SERVER IP >> ~/.ssh/known_hosts
 
 build:
   stage: build
