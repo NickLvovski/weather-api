@@ -1,0 +1,43 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  # Указываем, где хранится файл docker-compose и настраиваем доступ по SSH.
+  BUILD_SERVER: "ec2-user@91.184.234.183"
+  DEPLOY_SERVER: "ec2-user@91.184.234.182"
+  COMPOSE_FILE: "/home/ec2-user/weather-api/docker-compose.yaml"
+  DOCKER_TLS_CERTDIR: "/certs"
+  PROJECT_DIR: "/home/ec2-user/weather-api/"
+
+before_script:
+  - mkdir -p ~/.ssh
+  - echo "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+  - chmod 600 ~/.ssh/id_rsa
+  - ssh-keyscan -H 91.184.234.183 >> ~/.ssh/known_hosts
+  - ssh-keyscan -H 91.184.234.182 >> ~/.ssh/known_hosts
+
+build:
+  stage: build
+  script:
+    - echo "Building Docker images on the build server..."
+    # Выполняем сборку Docker образов
+    - ssh -t $BUILD_SERVER "cd $PROJECT_DIR && sudo docker-compose build && sudo docker-compose push"
+  only:
+    - main
+
+deploy:
+  stage: deploy
+  script:
+    - echo "Transferring application files to the deploy server..."
+    # Передаем файлы приложения на сервер деплоя
+    - ssh -t $BUILD_SERVER "cd $PROJECT_DIR &&
+        rsync -avz --exclude='.git' ./ $DEPLOY_SERVER:$PROJECT_DIR/"
+    - echo "Deploying the application on the deploy server..."
+    # Выполняем деплой
+    - ssh -t $DEPLOY_SERVER "cd $PROJECT_DIR &&
+        sudo docker-compose pull && 
+        sudo docker-compose down && 
+        sudo docker-compose up -d"
+  only:
+    - main
