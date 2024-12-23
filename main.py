@@ -1,4 +1,5 @@
 """Main module"""
+import base64
 from typing import Annotated
 from fastapi import FastAPI, HTTPException, Response, Depends
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
