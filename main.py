@@ -90,15 +90,25 @@ def remove_weather_history(
     """
     Удаляет запрос из базы данных по id.
     """
+    def remove_weather_history(
+    id:int, 
+    credentials:Annotated[HTTPBasicCredentials, Depends(security)]
+    ):
+    """
+    Удаляет запрос из базы данных по id.
+    """
     db: Session=next(get_db())
     # Проверяем, является ли пользователь администратором
-    admin = db.query(Administrator).where(
-        Administrator.username == credentials.username, 
-        Administrator.password == credentials.password
+    admin = db.query(Administrator).filter(
+        Administrator.username == credentials.username
         ).first()
     if not admin:
         raise HTTPException(status_code=401, detail="Administrator not found")
     
+    stored_password = base64.b64decode(admin.password).decode('ascii')
+    if stored_password != credentials.password:
+        raise HTTPException(status_code=401, detail="Wrong password")
+
     history = db.query(WeatherRequest).filter(WeatherRequest.id == id)
     if not history:
         raise HTTPException(status_code = 404, detail=f"No data for id: {id}")
